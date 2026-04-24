@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArchiveX, Command, File, Inbox, Send, Trash2 } from "lucide-react";
+import { ArchiveX, Command, File, Inbox } from "lucide-react";
 
 import {
   Sidebar,
@@ -12,8 +12,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { appStore, useSelector } from "@/store";
+import { AppSidebarMail } from "./app-sidebar-mail";
 
 // This is sample data
 const data = {
@@ -36,21 +38,9 @@ const data = {
       isActive: false,
     },
     {
-      title: "Sent",
-      url: "#",
-      icon: Send,
-      isActive: false,
-    },
-    {
       title: "Junk",
       url: "#",
       icon: ArchiveX,
-      isActive: false,
-    },
-    {
-      title: "Trash",
-      url: "#",
-      icon: Trash2,
       isActive: false,
     },
   ],
@@ -139,26 +129,35 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  // Note: I'm using state to show active item.
-  // IRL you should use the url/router.
   const [activeItem, setActiveItem] = React.useState(data.navMain[0]);
-  const [mails, setMails] = React.useState(data.mails);
-  const { setOpen } = useSidebar();
+  const mails = useSelector(appStore, (state) => state.mails);
+  const filteredMails = mails.filter((mail) => {
+    if (activeItem.title === "Inbox") {
+      return !(mail.archived ?? false);
+    }
+    if (activeItem.title === "Drafts") {
+      return !(mail.archived ?? false) && (mail.draftReply ?? false);
+    }
+    if (activeItem.title === "Junk") {
+      return mail.archived ?? false;
+    }
+    return true;
+  });
+  const sortedMails = filteredMails.sort((a, b) => {
+    return (a.priority ?? Number.MAX_VALUE) - (b.priority ?? Number.MAX_VALUE);
+  });
 
   return (
     <Sidebar
       collapsible="icon"
-      className="overflow-hidden *:data-[sidebar=sidebar]:flex-row"
+      className="overflow-hidden *:data-[sidebar=sidebar]:flex-row absolute"
       {...props}
     >
-      {/* This is the first sidebar */}
-      {/* We disable collapsible and adjust width to icon. */}
-      {/* This will make the sidebar appear as icons. */}
       <Sidebar
         collapsible="none"
         className="w-[calc(var(--sidebar-width-icon)+1px)]! border-r bg-white"
       >
-        <SidebarHeader className="py-3.5">
+        <SidebarHeader className="py-4">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" className="md:h-8 md:p-0">
@@ -176,34 +175,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent className="px-1.5 md:px-0">
-              <SidebarMenu>
-                {data.navMain.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      tooltip={{
-                        children: item.title,
-                        hidden: false,
-                      }}
-                      onClick={() => {
-                        setActiveItem(item);
-                        const mail = data.mails.sort(() => Math.random() - 0.5);
-                        setMails(
-                          mail.slice(
-                            0,
-                            Math.max(5, Math.floor(Math.random() * 10) + 1),
-                          ),
-                        );
-                        setOpen(true);
-                      }}
-                      isActive={activeItem?.title === item.title}
-                      className="px-2.5 md:px-2"
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
+              <TooltipProvider>
+                <SidebarMenu>
+                  {data.navMain.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        tooltip={{
+                          children: item.title,
+                          hidden: false,
+                        }}
+                        onClick={() => {
+                          setActiveItem(item);
+                        }}
+                        isActive={activeItem?.title === item.title}
+                        className="px-2.5 md:px-2"
+                      >
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </TooltipProvider>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
@@ -213,7 +206,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {/* We disable collapsible and let it fill remaining space */}
       <Sidebar collapsible="none" className="hidden flex-1 md:flex bg-white">
         <SidebarHeader className="gap-3.5 border-b p-4">
-          <div className="flex w-full items-center justify-between h-7">
+          <div className="flex w-full items-center justify-between h-8">
             <div className="text-base font-medium text-foreground">
               {activeItem?.title}
             </div>
@@ -222,21 +215,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarContent>
           <SidebarGroup className="px-0">
             <SidebarGroupContent>
-              {mails.map((mail) => (
-                <a
-                  href="#"
-                  key={mail.email}
-                  className="flex flex-col items-start gap-2 border-b p-4 text-sm leading-tight whitespace-nowrap last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                >
-                  <div className="flex w-full items-center gap-2">
-                    <span>{mail.name}</span>{" "}
-                    <span className="ml-auto text-xs">{mail.date}</span>
-                  </div>
-                  <span className="font-medium">{mail.subject}</span>
-                  <span className="line-clamp-2 w-[260px] text-xs whitespace-break-spaces">
-                    {mail.teaser}
-                  </span>
-                </a>
+              {sortedMails.map((mail) => (
+                <AppSidebarMail
+                  key={mail.id}
+                  mail={mail}
+                  handleClick={() => {
+                    appStore.setState({ mailId: mail.id });
+                  }}
+                />
               ))}
             </SidebarGroupContent>
           </SidebarGroup>
