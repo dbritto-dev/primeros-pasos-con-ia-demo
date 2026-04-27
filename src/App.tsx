@@ -171,7 +171,7 @@ function AppSendButton() {
     controllerRef.current = new AbortController();
 
     // Reset state
-    appStore.setState(appStore.getInitialState());
+    appStore.setState({ ...appStore.getInitialState(), modelId: model });
 
     await Promise.all(
       Object.values(mails).map(async (mail) => {
@@ -186,7 +186,7 @@ function AppSendButton() {
                 To: ${mail.receiver}
                 Subject: ${mail.subject}
                 
-                ${mail.body},
+                ${mail.body}
                 `,
               },
             ],

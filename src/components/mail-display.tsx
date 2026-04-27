@@ -33,7 +33,7 @@ const MailDisplay = () => {
   const mail = mailsMap[mailId];
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" key={mailId}>
       <div className="flex items-center p-2">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" disabled={!mail}>
