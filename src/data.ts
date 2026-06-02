@@ -162,8 +162,23 @@ const tools: Array<FunctionTool> = [
 
 const models = [
   {
+    id: "qwen3.6:latest",
+    name: "Qwen 3.6",
+    description: "Alibaba's multilingual model",
+  },
+  {
     id: "qwen3.5:latest",
     name: "Qwen 3.5",
+    description: "Alibaba's multilingual model",
+  },
+  {
+    id: "qwen3.5:9b-nvfp4",
+    name: "Qwen 3.5 (9B, NVFP4)",
+    description: "Alibaba's multilingual model",
+  },
+  {
+    id: "qwen3.5:4b-mlx-bf16",
+    name: "Qwen 3.5 (4B, MLX, BF16)",
     description: "Alibaba's multilingual model",
   },
   {
